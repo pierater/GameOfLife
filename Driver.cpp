@@ -25,6 +25,8 @@ void printGrid();
 bool isAlive(int, int);
 bool isAllDead();
 bool isValidCoor(int, int);
+bool isBorn(int);
+bool isSurvive(int);
 void debug(std::string);
 void debug(char);
 void debug(int);
@@ -32,13 +34,13 @@ void debug(int);
 
 // LIFE VARIABLES
 // The probability of any cell to be alive on initialization
-#define SPAWN_PERC 23
+#define SPAWN_PERC 35
 
 // Enable for debug logs
 #define DEBUG false
 
 // Symbol for "alive" cells
-#define ALIVE_SYM 'X'
+#define ALIVE_SYM 'x'
 
 // Symbol for "dead" cells
 #define DEAD_SYM ' '
@@ -47,18 +49,14 @@ void debug(int);
 #define ITERATIONS -1
 
 // Nanos to sleep between generations
-#define SLEEP_NS 160000
+#define ONE_SEC 1000000
+#define SLEEP_NS ONE_SEC / 20
 
-// Minimum number of nearby alive-neighbors which a single alive cell must have nearby in order to survive
-// Any less and the cell dies, default 2
-#define MIN_NEIGHBORS_TO_SURVIVE 2
+// A cell will survive if it has N alive neighbors that are present in this set
+const std::vector<int> SURVIVE {2, 3};
 
-// Maximum number of nearby alive-neighbors which a single alive cell must have nearby in order to survive
-// Any more and the cell dies, default 3
-#define MAX_NEIGHBORS_TO_SURVIVE 3
-
-// Minimum number of nearby alive-neighbors to revive a dead cell, default 3
-#define MIN_NEIGHBORS_TO_REVIVE 3
+// A cell will be born if it has N alive neighbors that are present in this set
+const std::vector<int> BORN {3, 6};
 
 // X cols length, if unspecified will inherits from term
 int MAX_X;
@@ -98,6 +96,13 @@ int main()
             break;
         }
         debug("7");
+
+        char input = getch();
+        if (input == ' ') // Space
+        {
+            initializeLife();
+            iteration = 0;
+        }
     }
 }
 
@@ -111,6 +116,10 @@ void prepareTerminal()
 {
     // Prepare ncurses
     initscr();
+    // Hide cursor
+    curs_set(0);
+    // Set no timeout for input
+    timeout(1);
     // Prepare random number generator
     srand(time(NULL));
     // Handle ctrl + c
@@ -141,6 +150,7 @@ void prepareTerminal()
 void teardownTerminal()
 {
     // Disable ncurses
+    curs_set(1);
     getch();
     endwin();
 }
@@ -266,13 +276,13 @@ bool isAlive(int x, int y)
 
 
     // Any live cell with two or three live neighbours survives.
-    if (isCurAlive && (numAlive == MIN_NEIGHBORS_TO_SURVIVE || numAlive == MAX_NEIGHBORS_TO_SURVIVE))
+    if (isCurAlive && isSurvive(numAlive))
     {
         return true;
     }
 
     // Any dead cell with three live neighbours becomes a live cell.
-    if (!isCurAlive && numAlive == MIN_NEIGHBORS_TO_REVIVE)
+    if (!isCurAlive && isBorn(numAlive))
     {
         return true;
     }
@@ -367,5 +377,15 @@ void printGrid()
 bool isValidCoor(int x, int y)
 {
     return x >= 0 && x < MAX_X && y >= 0 && y < MAX_Y;
+}
+
+bool isBorn(int target)
+{
+    return std::find(BORN.begin(), BORN.end(), target) != BORN.end();
+}
+
+bool isSurvive(int target)
+{
+    return std::find(SURVIVE.begin(), SURVIVE.end(), target) != SURVIVE.end();
 }
 
