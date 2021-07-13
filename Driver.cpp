@@ -1,5 +1,6 @@
 // ***********************************************************************
-// Driver.cpp
+// A basic example of Conway's Game of Life.
+// Author: Martin Almaraz
 // ***********************************************************************
 
 
@@ -30,15 +31,43 @@ void debug(int);
 
 
 // LIFE VARIABLES
-#define SPAWN_PERC 35
+// The probability of any cell to be alive on initialization
+#define SPAWN_PERC 23
+
+// Enable for debug logs
 #define DEBUG false
+
+// Symbol for "alive" cells
 #define ALIVE_SYM 'X'
+
+// Symbol for "dead" cells
 #define DEAD_SYM ' '
+
+// Number of generations, infinite if < 0
 #define ITERATIONS -1
+
+// Nanos to sleep between generations
 #define SLEEP_NS 160000
+
+// Minimum number of nearby alive-neighbors which a single alive cell must have nearby in order to survive
+// Any less and the cell dies, default 2
+#define MIN_NEIGHBORS_TO_SURVIVE 2
+
+// Maximum number of nearby alive-neighbors which a single alive cell must have nearby in order to survive
+// Any more and the cell dies, default 3
+#define MAX_NEIGHBORS_TO_SURVIVE 3
+
+// Minimum number of nearby alive-neighbors to revive a dead cell, default 3
+#define MIN_NEIGHBORS_TO_REVIVE 3
+
+// X cols length, if unspecified will inherits from term
 int MAX_X;
+// Y rows length, if unspecified will inherits from term
 int MAX_Y;
+
+// Current representation of the screen. ie. What's on the terminal
 std::vector<std::vector<char>> CUR_GRID;
+// Next representation of the screen. ie What will be printed to the terminal next
 std::vector<std::vector<char>> NEXT_GRID;
 
 int main()
@@ -55,7 +84,7 @@ int main()
         printGridToTerminal();
         debug("3");
         move(0, 0);
-        printw("Level=%d", iteration);
+        printw("Gen=%d", iteration);
         refresh();
         debug("4");
         advanceGeneration();
@@ -87,12 +116,15 @@ void prepareTerminal()
     // Handle ctrl + c
     signal(SIGINT, interruptHandler);
 
-    // Get screen size
-    int x, y;
-    getmaxyx(stdscr, y, x);
-    // ncurses reports it backwards
-    MAX_X = y;
-    MAX_Y = x;
+    // Get screen size if not provided
+    if (MAX_X == 0 || MAX_Y == 0)
+    {
+        int x, y;
+        getmaxyx(stdscr, y, x);
+        // ncurses reports it backwards
+        MAX_X = y;
+        MAX_Y = x;
+    }
     CUR_GRID = std::vector<std::vector<char>>(MAX_Y);
     NEXT_GRID = std::vector<std::vector<char>>(MAX_Y);
     for (int y = 0; y < MAX_Y; y++)
@@ -234,13 +266,13 @@ bool isAlive(int x, int y)
 
 
     // Any live cell with two or three live neighbours survives.
-    if (isCurAlive && (numAlive == 2 || numAlive == 3))
+    if (isCurAlive && (numAlive == MIN_NEIGHBORS_TO_SURVIVE || numAlive == MAX_NEIGHBORS_TO_SURVIVE))
     {
         return true;
     }
 
     // Any dead cell with three live neighbours becomes a live cell.
-    if (!isCurAlive && numAlive == 3)
+    if (!isCurAlive && numAlive == MIN_NEIGHBORS_TO_REVIVE)
     {
         return true;
     }
